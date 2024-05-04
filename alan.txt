@@ -1,0 +1,235 @@
+intent('What does this app do?','What I can do here?', reply('This is a news project'));
+
+// intent('Start a command', (p) => {
+//     p.play('Hello, I understand your command');
+// })
+
+// intent('Start a command', (p) => {
+//     p.play({command: 'testCommand'});
+// })
+
+// 
+
+
+
+const API_KEY = '7496e273b838419990d74f6e2e41d24c';
+
+const APP_NAME = 'news-reader-app/1.0.0'; // 
+let savedArticles = [];
+
+// News by Source
+intent('Tell me what\'s happening on $(source* (.*)) right now', (p) => {
+    let NEWS_API_URL = `https://newsapi.org/v2/top-headlines?apiKey=${API_KEY}`;
+    
+const trimmedValue = p.source.value.trim().toUpperCase();
+
+if (trimmedValue === 'BBC' || trimmedValue === 'ARY' || trimmedValue === 'FOX' || trimmedValue === 'GOOGLE' || trimmedValue === 'HACKER') {
+    NEWS_API_URL = `${NEWS_API_URL}&sources=${trimmedValue.toLowerCase()}-news`;
+} else if(trimmedValue ==='AL JAZEERA ENGLISH' || trimmedValue === 'NATIONAL GEOGRAPHIC' || trimmedValue === 'USA TODAY') {
+  NEWS_API_URL=`${NEWS_API_URL}&sources=${trimmedValue.toLowerCase().split(" ").join("-")}`;
+} else if(trimmedValue ==='AL JAZEERA ENGLISH') {
+  NEWS_API_URL=`${NEWS_API_URL}&sources=${trimmedValue.toLowerCase().split(" ").join("-")}`;
+} else {
+    NEWS_API_URL = `${NEWS_API_URL}&sources=${trimmedValue.toLowerCase()}`;
+}
+
+
+
+    
+    const headers = {
+        'User-Agent': APP_NAME
+    };
+
+    console.log('API URL:', NEWS_API_URL);
+    
+    api.request({url: NEWS_API_URL, headers}, (error, response, body) => {
+        
+        console.log('API Response:', body);
+
+            const { articles } = JSON.parse(body);
+//             console.log(articles);
+
+            if (!articles || articles.length === 0) {
+                p.play('Sorry, no articles found. Please try searching for news from a different source.');
+                return;
+            }
+
+            savedArticles = articles;
+            p.play({ command: 'newHeadlines', articles });
+            p.play(`Here are the (latest | recent) ${p.source.value} news`);
+        
+            p.play('Would you like me to read the headlines?');
+            p.then(confirmation);
+});
+    });
+
+
+
+// News by Terms
+intent('What\'s happening with $(term* (.*))', (p) => {
+    let NEWS_API_URL = `https://newsapi.org/v2/everything?apiKey=${API_KEY}`;
+    
+    if (p.term.value) {
+        NEWS_API_URL = `${NEWS_API_URL}&q=${p.term.value}`;
+    }
+
+    
+    const headers = {
+        'User-Agent': APP_NAME
+    };
+
+    console.log('API URL:', NEWS_API_URL);
+    
+    api.request({url: NEWS_API_URL, headers}, (error, response, body) => {
+        
+//         console.log('API Response:', body);
+
+            const { articles } = JSON.parse(body);
+//             console.log(articles);
+
+            if (!articles || articles.length === 0) {
+                p.play('Sorry, no articles found. Please try searching for something else.');
+                return;
+            }
+
+            savedArticles = articles;
+            p.play({ command: 'newHeadlines', articles });
+            p.play(`Here are the (latest | recent) articles on ${p.term.value}`);
+        
+            p.play('Would you like me to read the headlines?');
+            p.then(confirmation);
+});
+    });
+
+
+
+
+// News by Categories
+const CATEGORIES = ['business', 'entertainment', 'general', 'health', 'science', 'sports', 'technology'];
+const CATEGORIES_INTENT = `${CATEGORIES.map((category) => `${category}~${category}`).join('|')}`
+
+intent(
+  `(show|what is|tell me|what's|what are|what're|read) (the|) (recent|latest|) $(N news|headlines) (in|about|on|) $(C~ ${CATEGORIES_INTENT})`,
+  `(read|show|get|bring me|give me) (the|) (recent|latest) $(C~ ${CATEGORIES_INTENT}) $(N news|headlines)`,
+  `(read|show|get|bring me|give me) (the|) (recent|latest) $(N news|headlines)`,
+  (p) => {
+    let NEWS_API_URL = `https://newsapi.org/v2/top-headlines?apiKey=${API_KEY}&country=us`;
+
+    if (p.C && p.C.value) {
+      NEWS_API_URL = `${NEWS_API_URL}&category=${p.C.value}`;
+    }
+
+    const headers = {
+      'User-Agent': APP_NAME,
+    };
+
+    console.log('API URL:', NEWS_API_URL);
+
+    api.request({ url: NEWS_API_URL, headers }, (error, response, body) => {
+      const { articles } = JSON.parse(body);
+
+      if (!articles || articles.length === 0) {
+        p.play('Sorry, no articles found. Please try searching for a different category.');
+        return;
+      }
+       savedArticles = articles;
+      p.play({ command: 'newHeadlines', articles });
+              // Play the message indicating the category
+      if (p.C && p.C.value) {
+        p.play(`Here are the (latest | recent) articles on ${p.C.value}`);
+      } else {
+        p.play('Here are the (latest | recent) news');
+      }
+        
+      p.play('Would you like me to read the headlines?');
+      p.then(confirmation);
+    });
+  }
+);
+
+
+
+// news from Country
+intent('what\'s going on in $(country* (.*))', (p) => {
+    let NEWS_API_URL = `https://newsapi.org/v2/top-headlines?apiKey=${API_KEY}`;
+    
+const trimmedValue = p.country.value.trim().toUpperCase();
+ console.log(trimmedValue);
+if (trimmedValue === 'US' || trimmedValue === 'U.S') {
+    NEWS_API_URL = `${NEWS_API_URL}&country=us`;
+} else if(trimmedValue === 'UK') {
+    NEWS_API_URL = `${NEWS_API_URL}&country=gb`;
+} else if (trimmedValue === 'CHINA') {
+    NEWS_API_URL = `${NEWS_API_URL}&country=cn`;
+} else if (trimmedValue === 'INDIA') {
+    NEWS_API_URL = `${NEWS_API_URL}&country=in`;
+} else if (trimmedValue === 'CANADA') {
+    NEWS_API_URL = `${NEWS_API_URL}&country=ca`;
+}  else if (trimmedValue === 'SAUDI ARABIA') {
+    NEWS_API_URL = `${NEWS_API_URL}&country=sa`;
+} else if (trimmedValue === 'RUSSIA') {
+    NEWS_API_URL = `${NEWS_API_URL}&country=ru`;
+} else if (trimmedValue === 'JAPAN') {
+    NEWS_API_URL = `${NEWS_API_URL}&country=jp`;
+} else if (trimmedValue === 'POLAND') {
+    NEWS_API_URL = `${NEWS_API_URL}&country=pl`;
+}  else if (trimmedValue === 'SOUTH KOREA') {
+    NEWS_API_URL = `${NEWS_API_URL}&country=kr`;
+} else if (trimmedValue === 'UAE' || trimmedValue === 'U A E') {
+    NEWS_API_URL = `${NEWS_API_URL}&country=ae`;
+} 
+    
+
+    const headers = {
+        'User-Agent': APP_NAME
+    };
+
+    console.log('API URL:', NEWS_API_URL);
+    
+    api.request({url: NEWS_API_URL, headers}, (error, response, body) => {
+        
+        console.log('API Response:', body);
+
+            const { articles } = JSON.parse(body);
+            console.log(articles);
+
+            if (!articles || articles.length === 0) {
+                p.play('Sorry, no articles found. Please try searching for news from a different Country.');
+                return;
+            }
+
+            savedArticles = articles;
+            p.play({ command: 'newHeadlines', articles });
+            p.play(`Here are the (latest | recent) ${p.country.value} headlines`);
+        
+            p.play('Would you like me to read the headlines?');
+            p.then(confirmation);
+});
+    });
+
+
+
+const confirmation = context(() => {
+    intent('yes', async (p) => {
+        for(let i = 0; i < savedArticles.length; i++) {
+            p.play({command: 'highlight', article: savedArticles[i]})
+            p.play(`${savedArticles[i].title}`)
+        }
+    })
+    intent('no', (p) => {
+        p.play('Sure, sounds good to me')
+    })
+})
+
+
+
+intent('open (the|) (article|) (number|) $(number* (.*))', (p) => {
+    if(p.number.value) {
+        p.play({ command:'open', number: p.number.value, articles: savedArticles})
+    }
+})
+
+intent('(go|) back', (p) => {
+    p.play('Sure, going back');
+    p.play({ command: 'newHeadlines', articles: []})
+})
